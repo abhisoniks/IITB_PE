@@ -1,0 +1,4 @@
+Granularity(in minutes)                         Period(in hours)                     Table Name
+1                                   2                                    raw_data               Minutes     Hours
+30                                  4                                    hourly_archival               Minutes     Hours
+60                                 4                                    daily_archival               Minutes     Hours
