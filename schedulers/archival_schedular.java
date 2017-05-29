@@ -22,14 +22,17 @@ public class archival_schedular{
                 br.readLine();
                 line = br.readLine();
                 String[] str = line.split("\\s+");
-                interval = Integer.parseInt(str[1]);
+                interval = Integer.parseInt(str[0]);
+                System.out.println("interval==="+interval);
                 str = null;
             }
             catch(IOException ex){
                 System.out.println("Exception in reading fie");
             }
-            interval = interval * 3600;
+            interval = interval * 60;
+            interval+=70; // Just give extra one minute
             timer.scheduleAtFixedRate(mTask,0,interval*1000);
+         // timer.scheduleAtFixedRate(mTask,0,2*1000);
             f=null;    
     }   
 }

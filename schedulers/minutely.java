@@ -8,8 +8,6 @@ public class minutely {
     public static void main(String... x){
         Timer timer = new Timer();
         data_puller mTask = new data_puller();
-        timer.scheduleAtFixedRate(mTask, 0, 60000);
-       
-        
+        timer.scheduleAtFixedRate(mTask, 0, 60000); 
     }                
 }

@@ -16,14 +16,14 @@ public class statistics_Generator extends TimerTask {
     boolean flag =false;
     static HashMap<String,Integer> host = new HashMap<String,Integer>();
     static HashMap<Integer,Integer> items = new HashMap<Integer,Integer>();
-    Connection local_connection = null;
+    Connection con = null;
     ArrayList params = new ArrayList();
     File f = new File("./src/files/archivalInfo_admin");
     public statistics_Generator(){ 
-        System.out.println(">>>>");
+      
         sqlutil su = new sqlutil();
         try{
-               local_connection = su.getcon();
+               con = su.getcon();
         }catch(Exception ex){
             System.out.println("something wrong with local db connection");
         }
@@ -33,16 +33,15 @@ public class statistics_Generator extends TimerTask {
         addHost ah = new addHost();
         Connection con = null;
         try{
-            
             con = ah.getcon();
-            String query = "select * from hosts";
+            String query = "select * from items";
             ArrayList al = new ArrayList();
             ResultSet rs = ah.selectQuery(query, al, con);
             while(rs.next()){
-                String hostName = rs.getString("host");
                 int hostId = Integer.parseInt(rs.getString("hostid"));
+                int itemId = Integer.parseInt(rs.getString("itemid"));
                // System.out.println(hostName+" "+hostId);
-                host.put(hostName,hostId);
+                items.put(itemId,hostId);
             }
         }catch(Exception ex){
             System.out.println("Exception in making connection with addHost file");
@@ -62,11 +61,12 @@ public class statistics_Generator extends TimerTask {
     
     public void getItemList(){
         addHost su  = new addHost();
-        Connection con = null;
+      //  Connection con = null;
         try{
             String query = "select itemid,hostid from items";
             ArrayList al = new ArrayList();
-            con = su.getcon();
+            if(con==null)
+                con = su.getcon();
             ResultSet rs = su.selectQuery(query, al, con);
             int item=0;int host=0;
             while(rs.next()){
@@ -85,17 +85,16 @@ public class statistics_Generator extends TimerTask {
     void stats_generator(int level){   
         sqlutil2 su2 = new sqlutil2();
         sqlutil su = new sqlutil();
-        if(local_connection==null){
+        if(con==null){
             try{
-               local_connection = su.getcon();
+               con = su.getcon();
             }catch(Exception ex){
                 System.out.println("something wrong with local db connection");
             return;
             }
         }
         
-        try{
-           
+        try{ 
            BufferedReader br = new BufferedReader(new FileReader(f));
            String line,hostname,interface_name,key;
            int hostid=0, itemid=0;
@@ -112,15 +111,16 @@ public class statistics_Generator extends TimerTask {
            if(count==level){
                String prime = br.readLine();
                if(prime==null) return;
-               
+      
                Iterator it = items.entrySet().iterator();
+      
                 while (it.hasNext()) {
                     Map.Entry pair = (Map.Entry)it.next();
                     itemid = (int)pair.getKey();
                     hostid = (int)pair.getValue();
-                    System.out.println(hostid+" pair "+itemid);
+               //     System.out.println(hostid+" pair "+itemid);
                     insertStats(record_prime,prime,hostid,itemid,level);
-                    it.remove(); // avoids a ConcurrentModificationException
+                    
                 }
                 it = null;
                 stats_generator(level+1);
@@ -240,6 +240,7 @@ public class statistics_Generator extends TimerTask {
     }
      
     public void nextlevelInsertion(String num_stats, int hostid, int itemid,String table){
+        System.out.println("Inserting into "+table);
             String[] new_str = num_stats.split("\\s+");
             long total  = Long.parseLong(new_str[0]);
             double avg  = Double.parseDouble(new_str[1]);
@@ -249,27 +250,22 @@ public class statistics_Generator extends TimerTask {
             long clock  = Long.parseLong(new_str[4]);
             String date = unixtimeConvertor(clock);
             ResultSet rs=null;
-            sqlutil su2 = new sqlutil();
+            sqlutil su = new sqlutil();
             String query = "insert into "+table+" (hostid,itemid,clock,Time,"
                     + "totalTraffic,avgTraffic,minTraffic,maxTraffic,zeroTraffic)values(?,?,?,?,?,?,?,?,?)";
            // ArrayList params = new ArrayList();
             params.add(hostid); params.add(itemid); params.add(clock);
             params.add(date);params.add(total);params.add(avg);params.add(min);params.add(max);
-            params.add(zeroCount); Connection local_connection=null;
+            params.add(zeroCount); 
             try{
-               local_connection = su2.getcon();
-               int p = su2.ins_upd_del(query,params,local_connection);
+               if(con==null) 
+                    con = su.getcon();
+               int p = su.ins_upd_del(query,params,con);
                if(p>0) ;//System.out.println(p + "number of rows are inserted successfulyy for "+hostid+" "+itemid);
                else System.out.println("Insertion unsuccessfull for "+hostid+" "+itemid);
             }catch(Exception ex){
                 System.out.println("exception while insertion at current level "+hostid+" "+itemid);
                 ex.printStackTrace();
-            }finally{
-                try{
-                    local_connection.close();
-                }catch(Exception ex){
-                    System.out.println(">>>");
-                }
             }
             new_str = null;params.clear();
 
@@ -277,17 +273,17 @@ public class statistics_Generator extends TimerTask {
     
     public long get_rowCount(String table,int hostid,int itemid){
             ResultSet rs=null;//Connection local_connection=null;
-            sqlutil su2 = new sqlutil();
+            sqlutil su = new sqlutil();
             String query = "select count(*) as row_count from "+table +" where hostid = ? and itemid = ?";
          //   ArrayList params = new ArrayList();
             params.add(hostid); params.add(itemid);
             long row_count=0;
             try{
-                Connection local_connection = su2.getcon();
-                rs = su2.selectQuery(query,params,local_connection);  
+                if(con==null)
+                    con = su.getcon();
+                rs = su.selectQuery(query,params,con);  
                 while(rs.next())
                      row_count = Long.parseLong(rs.getString("row_count"));
-                local_connection.close();
             }catch(Exception ex){
                 System.out.println("Exception in retrieving row count in prime_table" + hostid+" "+itemid);
                 ex.printStackTrace();
@@ -304,28 +300,24 @@ public class statistics_Generator extends TimerTask {
       //  ArrayList params = new ArrayList();
         params.add(hostid);params.add(itemid);
     //    Connection local_connection = null;
-       if(local_connection == null){
+       if(con == null){
            try{
-            local_connection = su2.getcon();
+            con = su2.getcon();
            } catch(Exception ex){
             System.out.println("Exception in getOldestEntry");
            }         
        }
         try{
-            rs = su2.selectQuery(query,params,local_connection);  
+            rs = su2.selectQuery(query,params,con);
+            
         }catch(Exception ex){
             System.out.println("Exception in retrieving oldest entry in prime_tablefor"+" "
                     +hostid+" "+itemid);
             ex.printStackTrace();
+            params.clear();
             return null;
         }
-        finally{
-            try{
-                params.clear();
-            }catch(Exception ex){
-            
-            }
-        }
+        params.clear();
         return rs;
     }
     
@@ -356,9 +348,9 @@ public class statistics_Generator extends TimerTask {
                     + " hostid = ? and itemid= ? order by clock asc limit ? )temp "
                     + "where totalTraffic=?";
         try{
-            if(local_connection==null)
-                local_connection = su2.getcon();
-            rs = su2.selectQuery(query,params,local_connection);
+            if(con==null)
+                con = su2.getcon();
+            rs = su2.selectQuery(query,params,con);
             while(rs.next()){
                 String total = rs.getString("total");
                 String avg = rs.getString("avge");
@@ -368,7 +360,7 @@ public class statistics_Generator extends TimerTask {
                 result = total+" "+avg+" "+min+" "+max+" "+minclock;
             }
             params.add(0);
-            rs = su2.selectQuery(query2,params,local_connection);
+            rs = su2.selectQuery(query2,params,con);
             while(rs.next()){
                 String count = rs.getString("count");
                 result=result+" "+count;
@@ -377,9 +369,7 @@ public class statistics_Generator extends TimerTask {
             System.out.println("Exception in retrieving statistics in prime_table" +hostid+" "+itemid);
             ex.printStackTrace();
         }finally{
-            try{ params.clear();
-            }catch(Exception ex){}
-            
+             params.clear();
         }
         return result;
     }
@@ -392,9 +382,9 @@ public class statistics_Generator extends TimerTask {
         params.add(hostid); params.add(itemid); params.add(num);
         
          try{
-             if(local_connection==null)
-                local_connection = su2.getcon();
-            int p = su2.ins_upd_del(query,params,local_connection);
+             if(con==null)
+                con = su2.getcon();
+            int p = su2.ins_upd_del(query,params,con);
             if(p>0);// System.out.println(p + "number of rows are deleted successfulyy");
             else System.out.println("Deletion unsuccessfull for "+hostid+" "+itemid);
          }catch(Exception ex){

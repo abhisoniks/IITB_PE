@@ -7,10 +7,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
-import sql.sqlutil;
+import sql.*;
 
 public class DateFieldAdder {
     public ArrayList al = new ArrayList();
+    
     public void Dateinsertor(int hostid,int itemid,long clock,long value,Connection con){
         Date date1 = new Date((clock+19800)*1000L);     // *1000 is to convert seconds to milliseconds
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // the format of your date
@@ -21,7 +22,6 @@ public class DateFieldAdder {
         sdf = null;
 
     }
-  
     void insertRawData(int hostid,int itemid,long clock,long val,String time,Connection con){
         
         String query = "insert into raw_data(hostid,itemid,clock,Time,value )values(?,?,?,?,?)";
@@ -38,4 +38,5 @@ public class DateFieldAdder {
         }
         query = null;al.clear();
     }
+    
 }
