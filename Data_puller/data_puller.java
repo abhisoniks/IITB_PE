@@ -20,6 +20,8 @@ public class data_puller extends TimerTask{
     Integer[] items;
     Connection con;  // local connection
     Connection con2; // zabbix  connection
+    String Zquery;
+    int count=0;
     
     public void makelocalConnection(){
         try{
@@ -27,6 +29,7 @@ public class data_puller extends TimerTask{
         }catch(Exception ex){
             System.out.println("something wrong with data puller connection with local");
             ex.printStackTrace();
+            return;
         }
     }
     
@@ -36,6 +39,7 @@ public class data_puller extends TimerTask{
         }catch(Exception ex){
             System.out.println("something wrong with data puller connection with zabbix");
             ex.printStackTrace();
+            return;
         }
     }
     
@@ -49,10 +53,11 @@ public class data_puller extends TimerTask{
             rawMax -= (rawMax % 60);
             next = rawMax + 60;
         }
-        
+        itemList = getItemList();
+        Zquery = "select max(clock) as maxi from (select clock from history_uint where clock > ? and itemid in "+itemList+") as T ";
         zabbixMax = getZabbixMaxClock();
         if(zabbixMax - rawMax >= 60) flag3=1;
-        itemList = getItemList();
+   
     }
         
     public String getItemList(){
@@ -79,6 +84,7 @@ public class data_puller extends TimerTask{
         }catch(Exception ex){
             System.out.println("Exception in getting connection with addHost database");
             ex.printStackTrace();
+            return null;
             
         }
         
@@ -90,14 +96,16 @@ public class data_puller extends TimerTask{
     
     public void run() {
         System.out.println("In Run and next in this schedule is "+next);
-        if(fullySync_Flag==1 && next>zabbixMax){
-            System.out.println("fully sync flag is "+fullySync_Flag);
+        zabbixMax = getZabbixMaxClock();
+        if(zabbixMax==-2){flag3=1;return;}
+        System.out.println(zabbixMax+" ## "+next);
+        if(zabbixMax-next<60){
+            System.out.println("waiting thread "+count);
             return;
-        }
-        if(fullySync_Flag==1){
+        }else{
             fullySync_Flag=0;
-            System.out.println("fullySync");
-        }
+        }  
+        if(zabbixMax-next>120)flag3=1;
         sqlutil2 su2 = new sqlutil2();
         sqlutil su = new sqlutil();
         if(con2==null){
@@ -113,6 +121,9 @@ public class data_puller extends TimerTask{
         if(con==null){
             try{
                 con = su.getcon();
+            }catch(com.mysql.jdbc.exceptions.jdbc4.CommunicationsException ex){
+                System.out.println("Communication Link failure");
+                return;
             }catch(Exception ex){
                 System.out.println("something wrong with data puller connection with local server");
                 flag2=1;
@@ -171,14 +182,15 @@ public class data_puller extends TimerTask{
     }
     
     public long getZabbixMaxClock(){
-        String query = "select max(clock) as maxi from (select clock from history_uint where clock > ?) as T ";
+        params.clear();
         params.add(next);
         long res=0l;
       //  Connection con2=null;
         try{
             if(con2==null)
                 con2 = su2.getcon();
-            ResultSet rs = su2.selectQuery(query, params, con2);
+            ResultSet rs = su2.selectQuery(Zquery, params, con2);
+            if(rs==null)return -2;
             if(rs.next()){
                 String temp = rs.getString("maxi");
                 if(temp==null){
@@ -187,12 +199,19 @@ public class data_puller extends TimerTask{
                     }catch(Exception ex){
                         System.out.println("Exception in sleep");
                     }
-                    return getZabbixMaxClock();
+                    return -1;
                 } 
                 else res = Long.parseLong(rs.getString("maxi"));
+            }else{
+                System.out.println("Yes");
+                return -1;
             }
                 
-        }catch(java.sql.SQLException sql_ex){
+        }catch(com.mysql.jdbc.exceptions.jdbc4.CommunicationsException ex){
+            System.out.println("Communication Link failure");
+            return -2;
+        }
+        catch(java.sql.SQLException sql_ex){
             System.out.println("param in getZabbixMax is "+params);
             sql_ex.printStackTrace();
         }
@@ -206,26 +225,26 @@ public class data_puller extends TimerTask{
     }
     
     public boolean bringSync(long zabbixMax){
-          if(con ==null){
-              try{
-                  con = new sqlutil().getcon();
-              }catch(Exception ex){
-                  System.out.println("connection fail bring sync");
-                  return false;
-              }
-          }
-          if(zabbixMax==0) zabbixMax = getZabbixMaxClock();
-          while(true){
-              while(zabbixMax-next >= 60){
-                pullData();
-                System.out.println("while bringsync  "+next+" "+zabbixMax);
+        if(con ==null){
+            try{
+                con = new sqlutil().getcon();
+            }catch(Exception ex){
+                System.out.println("connection fail bring sync");
+                return false;
             }
-            zabbixMax = getZabbixMaxClock();
-            if(zabbixMax  - next <=60) break;
-            System.out.println("still not in sync  "+next+" "+zabbixMax);
-          }  
-            System.out.println("fully sync "+next+" "+zabbixMax);
-            return true;
+        }
+        if(zabbixMax==0) zabbixMax = getZabbixMaxClock();
+        while(true){
+            while(zabbixMax-next >= 60){
+              pullData();
+              System.out.println("while bringsync  "+next+" "+zabbixMax);
+          }
+          zabbixMax = getZabbixMaxClock();
+          if(zabbixMax  - next <=60) break;
+          System.out.println("still not in sync  "+next+" "+zabbixMax);
+        }  
+          System.out.println("fully sync "+next+" "+zabbixMax);
+          return true;
     }
     
     public void pullData(){

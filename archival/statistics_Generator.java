@@ -18,9 +18,8 @@ public class statistics_Generator extends TimerTask {
     static HashMap<Integer,Integer> items = new HashMap<Integer,Integer>();
     Connection con = null;
     ArrayList params = new ArrayList();
-    File f = new File("./src/files/archivalInfo_admin");
+    File f = new File(System.getProperty("user.dir")+"/src/files/archivalInfo_admin");
     public statistics_Generator(){ 
-      
         sqlutil su = new sqlutil();
         try{
                con = su.getcon();
@@ -54,7 +53,7 @@ public class statistics_Generator extends TimerTask {
     }
     
     public void run(){
-        if(flag==false){ flag = true; return;}
+        if(flag==false){System.out.println(">>"); flag = true; return;}
         System.out.println("In run");
         stats_generator(1);    
     }
@@ -80,7 +79,6 @@ public class statistics_Generator extends TimerTask {
             ex.printStackTrace();   
         }
     }
-    
     
     void stats_generator(int level){   
         sqlutil2 su2 = new sqlutil2();
@@ -131,89 +129,9 @@ public class statistics_Generator extends TimerTask {
         }
         
     }
-    
-    
-   
-    
-    /*
-    void stats_generator(int level){   
-        sqlutil2 su2 = new sqlutil2();
-        Connection zabbix_connection=null;
-        Connection local_connection = null;
-        try{
-               zabbix_connection = su2.getcon();
-        }catch(Exception ex){
-            System.out.println("something wrong with connection with zabbix db");
-            return ;
-        }
-        sqlutil su = new sqlutil();
-        try{
-               local_connection = su.getcon();
-        }catch(Exception ex){
-            System.out.println("something wrong with local db connection");
-            return;
-        }
-
-        try{
-           File f = new File("./src/files/archivalInfo_admin");
-           BufferedReader br = new BufferedReader(new FileReader(f));
-           String line,hostname,interface_name,key;
-           int hostid=0, itemid=0;
-           int count=0;
-           String record_prime=null;String record = null;
-           while((line = br.readLine()) != null && count<=level){
-              if(count==level){
-                  record_prime = line;
-                  break;
-              }else{
-                  count++;
-              }
-           }
-           if(count==level){
-               String prime = br.readLine();
-               if(prime==null) return;
-               File file = new File("./src/files/hosts_file");
-               BufferedReader brr = new BufferedReader(new FileReader(file));
-               brr.readLine();
-               String[] str = null;
-               String tmp = "%";
-               String tmp2 = "%traffic%";
-               while((line = brr.readLine()) != null){
-                    str = line.split("\\s+");
-                   // hostname = "%"+str[0]+"%";
-                    hostname = str[0];
-                 //   hostname = tmp+str[0]+tmp;
-                    interface_name = tmp+str[1]+tmp;
-                    key  = tmp+str[2]+tmp2;
-                    Zabbix_Info zi = new Zabbix_Info();
-                    hostid = host.get(hostname);
-                   // hostid = zi.gethostid(hostname,zabbix_connection);
-                    itemid = zi.getItemid(hostid,interface_name,key,zabbix_connection);
-                    System.out.println(hostname+" "+hostid+" "+itemid);
-                    insertStats(record_prime,prime,hostid,itemid,level);
-                    hostname = null;
-                    interface_name = null;
-                }
-                str = null;
-                tmp=null;
-                tmp2=null;
-                brr.close();
-                stats_generator(level+1);
-                try{
-                    zabbix_connection.close();
-                    local_connection.close();
-                }catch(Exception ex){
-                    System.out.println("Exception in closing connection");
-                }
-                
-           }     
-        }catch(IOException ex){
-           System.out.println("exception while reading archivalInfo_admin");
-        }
-        
-    }*/
-    
+     
     public void insertStats(String record_prime,String record,int hostid,int itemid,int level){
+        System.out.println("insertStats "+hostid+" "+itemid);
         String[] str_prime = record_prime.split("\\s+");
         String[] str = record.split("\\s+");
         if(str.length!=5) return;
@@ -240,7 +158,7 @@ public class statistics_Generator extends TimerTask {
     }
      
     public void nextlevelInsertion(String num_stats, int hostid, int itemid,String table){
-        System.out.println("Inserting into "+table);
+            System.out.println("Inserting into "+table);
             String[] new_str = num_stats.split("\\s+");
             long total  = Long.parseLong(new_str[0]);
             double avg  = Double.parseDouble(new_str[1]);
@@ -272,6 +190,7 @@ public class statistics_Generator extends TimerTask {
     }
     
     public long get_rowCount(String table,int hostid,int itemid){
+            System.out.println("get-rowCount Entry "+table);
             ResultSet rs=null;//Connection local_connection=null;
             sqlutil su = new sqlutil();
             String query = "select count(*) as row_count from "+table +" where hostid = ? and itemid = ?";
@@ -293,7 +212,7 @@ public class statistics_Generator extends TimerTask {
     }
     
     public ResultSet getOldestEntry(long count,String table,int hostid,int itemid){
-        
+        System.out.println("Oldest Entry "+table);
         ResultSet rs=null;
         sqlutil su2 = new sqlutil();
         String query = "select * from "+table+" where hostid = ? and itemid= ? order by clock asc limit "+count;
@@ -326,7 +245,7 @@ public class statistics_Generator extends TimerTask {
         String result=null;
         sqlutil su2 = new sqlutil();
         String query;
-        System.out.println(level+" "+table);
+        
         if(level==1)
            query = "select sum(value) as total,avg(value) as avge,max(value) as maxe,"
                 + "min(value) as mine,min(clock) as minclock from (select * from "

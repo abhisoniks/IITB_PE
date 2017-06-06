@@ -1,5 +1,5 @@
 Granularity(in minutes)                         Period(in hours)                     Table Name
 1                                   4                                    raw_data               Minutes     Hours
 60                                  72                                    hourly_archival               Minutes     Hours
-1440                                 360                                    daily_archival               Minutes     Hours
-10080                                 240                                    weekly_archival               Minutes     Hours
+1440                                 360                                    daily_archival               Days     Days
+10080                                 240                                    weekly_archival               Weeks     Days
