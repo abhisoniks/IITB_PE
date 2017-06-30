@@ -28,10 +28,10 @@ public class DateFieldAdder {
         al.add(hostid);al.add(itemid);al.add(clock);al.add(time); al.add(val);
         sqlutil su = new sqlutil();
         try{    
-                //Connection con = su.getcon();
-                int rs = su.ins_upd_del(query, al,con);
-                if(rs > 0) ;//System.out.println("Inserted");
-                else System.out.println("failed");
+            //Connection con = su.getcon();
+            int rs = su.ins_upd_del(query, al,con);
+            if(rs > 0) ;//System.out.println("Inserted");
+            else System.out.println("failed");
         }catch(Exception ex){
                 System.out.println("Exception while inserting raw_data");
                 ex.printStackTrace();

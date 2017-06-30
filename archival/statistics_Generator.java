@@ -18,7 +18,7 @@ public class statistics_Generator extends TimerTask {
     static HashMap<Integer,Integer> items = new HashMap<Integer,Integer>();
     Connection con = null;
     ArrayList params = new ArrayList();
-    File f = new File(System.getProperty("user.dir")+"/src/files/archivalInfo_admin");
+    File f = new File("/home/abhisoni/NetBeansProjects/IITB_PE/src/files/archivalInfo_admin");
     public statistics_Generator(){ 
         sqlutil su = new sqlutil();
         try{
@@ -64,7 +64,7 @@ public class statistics_Generator extends TimerTask {
         try{
             String query = "select itemid,hostid from items";
             ArrayList al = new ArrayList();
-            if(con==null)
+            if(con==null||con.isClosed())
                 con = su.getcon();
             ResultSet rs = su.selectQuery(query, al, con);
             int item=0;int host=0;
@@ -83,13 +83,12 @@ public class statistics_Generator extends TimerTask {
     void stats_generator(int level){   
         sqlutil2 su2 = new sqlutil2();
         sqlutil su = new sqlutil();
-        if(con==null){
-            try{
-               con = su.getcon();
-            }catch(Exception ex){
-                System.out.println("something wrong with local db connection");
+        try{
+           if(con==null||con.isClosed()) 
+              con = su.getcon();
+        }catch(Exception ex){
+            System.out.println("something wrong with local db connection");
             return;
-            }
         }
         
         try{ 
@@ -121,13 +120,12 @@ public class statistics_Generator extends TimerTask {
                     
                 }
                 it = null;
-                stats_generator(level+1);
-                
+                stats_generator(level+1);  
            }     
         }catch(IOException ex){
            System.out.println("exception while reading archivalInfo_admin");
+           ex.printStackTrace();
         }
-        
     }
      
     public void insertStats(String record_prime,String record,int hostid,int itemid,int level){
@@ -176,7 +174,7 @@ public class statistics_Generator extends TimerTask {
             params.add(date);params.add(total);params.add(avg);params.add(min);params.add(max);
             params.add(zeroCount); 
             try{
-               if(con==null) 
+               if(con==null||con.isClosed()) 
                     con = su.getcon();
                int p = su.ins_upd_del(query,params,con);
                if(p>0) ;//System.out.println(p + "number of rows are inserted successfulyy for "+hostid+" "+itemid);
@@ -198,7 +196,7 @@ public class statistics_Generator extends TimerTask {
             params.add(hostid); params.add(itemid);
             long row_count=0;
             try{
-                if(con==null)
+                if(con==null||con.isClosed())
                     con = su.getcon();
                 rs = su.selectQuery(query,params,con);  
                 while(rs.next())
@@ -219,16 +217,15 @@ public class statistics_Generator extends TimerTask {
       //  ArrayList params = new ArrayList();
         params.add(hostid);params.add(itemid);
     //    Connection local_connection = null;
-       if(con == null){
-           try{
-            con = su2.getcon();
-           } catch(Exception ex){
-            System.out.println("Exception in getOldestEntry");
-           }         
-       }
         try{
-            rs = su2.selectQuery(query,params,con);
-            
+         if(con == null||con.isClosed())   
+         con = su2.getcon();
+        } catch(Exception ex){
+         System.out.println("Exception in getOldestEntry");
+        }         
+       
+        try{
+            rs = su2.selectQuery(query,params,con);   
         }catch(Exception ex){
             System.out.println("Exception in retrieving oldest entry in prime_tablefor"+" "
                     +hostid+" "+itemid);
@@ -267,7 +264,7 @@ public class statistics_Generator extends TimerTask {
                     + " hostid = ? and itemid= ? order by clock asc limit ? )temp "
                     + "where totalTraffic=?";
         try{
-            if(con==null)
+            if(con==null||con.isClosed())
                 con = su2.getcon();
             rs = su2.selectQuery(query,params,con);
             while(rs.next()){
@@ -301,7 +298,7 @@ public class statistics_Generator extends TimerTask {
         params.add(hostid); params.add(itemid); params.add(num);
         
          try{
-             if(con==null)
+             if(con==null||con.isClosed())
                 con = su2.getcon();
             int p = su2.ins_upd_del(query,params,con);
             if(p>0);// System.out.println(p + "number of rows are deleted successfulyy");

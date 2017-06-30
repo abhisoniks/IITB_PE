@@ -49,26 +49,23 @@ public class sqlutil2 {
         
     }
     public ResultSet selectQuery(String query,ArrayList al,Connection con)throws Exception{
-    try{
-        //con=getcon();
-        PreparedStatement ps=con.prepareStatement(query);
-        if(al!=null&&al.size()>0)
-        {
-            for(int i=0;i<al.size();i++)
-                ps.setObject(i+1,al.get(i));
+        try{
+            PreparedStatement ps=con.prepareStatement(query);
+            if(al!=null&&al.size()>0)
+            {
+                for(int i=0;i<al.size();i++)
+                    ps.setObject(i+1,al.get(i));
+            }
+            ResultSet rs=ps.executeQuery();
+            ps = null;
+            return rs;
         }
-        ResultSet rs=ps.executeQuery();
-        ps = null;
-        return rs;
+        catch(Exception ex){
+            System.out.println("exception caught in sqlutil2 file in search function");
+            return null;
+        }
     }
-    catch(Exception ex){
-        System.out.println("exception caught in sqlutil2 file in search function");
-        ex.printStackTrace(System.out);
-        return null;
-    }
-    
-    }
-    }
+}
 
     
 

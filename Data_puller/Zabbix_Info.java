@@ -1,31 +1,29 @@
 
 package Data_puller;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import sql.*;
 
 public class Zabbix_Info {
- 
     public int gethostid(String hostname,Connection con2){      
-         sqlutil2 su2 = new sqlutil2();
-            int hostid=0;
-            String query = "select hostid from hosts where host like ?";
-            ArrayList params = new ArrayList();
-            params.add(hostname);
-            try{
-          //         makeConnection(); 
-                   ResultSet rs   = su2.selectQuery(query, params, con2);  
-                  while(rs.next())
-                        hostid = Integer.parseInt(rs.getString("hostid"));
-                  rs = null;
-                }catch(Exception ex){
-                    System.out.println("Exception in retrieving Hostid");
-                }
-            query = null;
-            params = null;
-            return hostid;
+        sqlutil2 su2 = new sqlutil2();
+        int hostid=0;
+        String query = "select hostid from hosts where host like ?";
+        ArrayList params = new ArrayList();
+        params.add(hostname);
+        try{
+        //    makeConnection(); 
+           ResultSet rs   = su2.selectQuery(query, params, con2);  
+           while(rs.next())
+                 hostid = Integer.parseInt(rs.getString("hostid"));
+           rs = null;
+         }catch(Exception ex){
+             System.out.println("Exception in retrieving Hostid");
+         }
+        query = null;
+        params = null;
+        return hostid;
     }
         
     public int getItemid(int hostid,String interface_name,String key,Connection con2){

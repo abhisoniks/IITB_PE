@@ -13,29 +13,28 @@ public class archival_schedular{
         long interval=0;
         Timer timer = new Timer();
         statistics_Generator mTask = new statistics_Generator();
-        File f = new File(System.getProperty("user.dir")+"/src/files/archivalInfo_admin");
-       // System.out.println(System.getProperty("user.dir")+"/src/files/archivalInfo_admin");
+        File f = new File("/home/abhisoni/NetBeansProjects/IITB_PE/src/files/archivalInfo_admin");
         //File f = new File("./src/files/archivalInfo_admin");
-            try{
-                BufferedReader br = new BufferedReader(new FileReader(f));
-                String line,hostname,interface_name,key;
-                int hostid=0,itemid=0;
-                br.readLine();
-                br.readLine();
-                line = br.readLine();
-                String[] str = line.split("\\s+");
-                interval = Integer.parseInt(str[0]);
-                System.out.println("interval==="+interval);
-                str = null;
-            }
-            catch(IOException ex){
-                System.out.println("Exception in reading fie");
-            }
-              
-            interval = interval * 60;
-            interval+=70; // Just give extra one minute
-            timer.scheduleAtFixedRate(mTask,0,interval*1000);
-         // timer.scheduleAtFixedRate(mTask,0,2*1000);
-            //f=null;    
+        try{
+            BufferedReader br = new BufferedReader(new FileReader(f));
+            String line,hostname,interface_name,key;
+            int hostid=0,itemid=0;
+            br.readLine();
+            br.readLine();
+            line = br.readLine();
+            String[] str = line.split("\\s+");
+            interval = Integer.parseInt(str[0]);
+            System.out.println("interval==="+interval);
+            str = null;
+        }
+        catch(IOException ex){
+            System.out.println("Exception in reading fie");
+            ex.printStackTrace();
+        } 
+        interval = interval * 60;
+        interval+=70; // Just give extra one minute
+        timer.scheduleAtFixedRate(mTask,0,interval*1000);
+        // timer.scheduleAtFixedRate(mTask,0,2*1000);
+        //f=null;    
     }   
 }

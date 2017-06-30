@@ -8,7 +8,7 @@ import sql.*;
 
 public class data_puller extends TimerTask{
     ArrayList params = new ArrayList();
-    static long next = 1495297500; // multiple of 60   
+    static long next = 1497239340; // multiple of 60   
     int flag2 = 0; // If this flag is 1 then there is a chance that zabbix server and raw_data server is not in sync
     int flag3=0;   // 
     int fullySync_Flag=0;
@@ -20,8 +20,8 @@ public class data_puller extends TimerTask{
     Integer[] items;
     Connection con;  // local connection
     Connection con2; // zabbix  connection
-    String Zquery;
     int count=0;
+    
     
     public void makelocalConnection(){
         try{
@@ -54,7 +54,6 @@ public class data_puller extends TimerTask{
             next = rawMax + 60;
         }
         itemList = getItemList();
-        Zquery = "select max(clock) as maxi from (select clock from history_uint where clock > ? and itemid in "+itemList+") as T ";
         zabbixMax = getZabbixMaxClock();
         if(zabbixMax - rawMax >= 60) flag3=1;
    
@@ -96,6 +95,10 @@ public class data_puller extends TimerTask{
     
     public void run() {
         System.out.println("In Run and next in this schedule is "+next);
+        if(itemList==null){ 
+            itemList = getItemList();
+            if(itemList==null){System.out.println("Item List NUll"); return;}
+        }
         zabbixMax = getZabbixMaxClock();
         if(zabbixMax==-2){flag3=1;return;}
         System.out.println(zabbixMax+" ## "+next);
@@ -106,34 +109,31 @@ public class data_puller extends TimerTask{
             fullySync_Flag=0;
         }  
         if(zabbixMax-next>120)flag3=1;
-        sqlutil2 su2 = new sqlutil2();
-        sqlutil su = new sqlutil();
-        if(con2==null){
-            try{
+        try{
+            if(con2==null || con2.isClosed())
                 con2 = su2.getcon();
-            }catch(Exception ex){
-                 System.out.println("something wrong with data puller connection with zabbix");
-                 ex.printStackTrace();
-                 flag2=1;
-                 return ;
-            }
+        }catch(Exception ex){
+             System.out.println("something wrong with data puller connection with zabbix");
+             ex.printStackTrace();
+             flag2=1;
+             return ;
         }
-        if(con==null){
-            try{
+        
+        try{
+            if(con==null||con.isClosed())
                 con = su.getcon();
-            }catch(com.mysql.jdbc.exceptions.jdbc4.CommunicationsException ex){
-                System.out.println("Communication Link failure");
-                return;
-            }catch(Exception ex){
-                System.out.println("something wrong with data puller connection with local server");
-                flag2=1;
-                ex.printStackTrace();
-                return;
-            }
+        }catch(com.mysql.jdbc.exceptions.jdbc4.CommunicationsException ex){
+            System.out.println("Communication Link failure");
+            return;
+        }catch(Exception ex){
+            System.out.println("something wrong with data puller connection with local server");
+            flag2=1;
+            ex.printStackTrace();
+            return;
         }
+        
             
         if(flag3==1){
-            System.out.println("flag3 box");
             if(bringSync(zabbixMax)){
                 System.out.println("After sync");
                 fullySync_Flag=1;
@@ -143,15 +143,15 @@ public class data_puller extends TimerTask{
             return;
         } 
         if(flag2==1){
-                System.out.println("In flag2 block");
-                long zabbixMax = getZabbixMaxClock();
-                if(zabbixMax - next > 60){
-                    if(bringSync(zabbixMax)){
-                        flag2=0;
-                        flag3=0;
-                    };
-                    return;
-                } 
+            System.out.println("In flag2 block");
+            long zabbixMax = getZabbixMaxClock();
+            if(zabbixMax - next > 60){
+                if(bringSync(zabbixMax)){
+                    flag2=0;
+                    flag3=0;
+                };
+                return;
+            } 
         }
         pullData();
     } 
@@ -162,7 +162,7 @@ public class data_puller extends TimerTask{
         sqlutil su = new sqlutil();
        // Connection con=null;
         try{
-            if(con == null)
+            if(con == null||con.isClosed())
                 con = su2.getcon();
             ResultSet rs = su.selectQuery(query, params, con);
             if(rs.next()){
@@ -183,11 +183,11 @@ public class data_puller extends TimerTask{
     
     public long getZabbixMaxClock(){
         params.clear();
+        String Zquery = "select max(clock) as maxi from (select clock from history_uint where clock > ? and itemid in "+itemList+") as T ";
         params.add(next);
         long res=0l;
-      //  Connection con2=null;
         try{
-            if(con2==null)
+            if(con2==null||con2.isClosed())
                 con2 = su2.getcon();
             ResultSet rs = su2.selectQuery(Zquery, params, con2);
             if(rs==null)return -2;
@@ -225,14 +225,14 @@ public class data_puller extends TimerTask{
     }
     
     public boolean bringSync(long zabbixMax){
-        if(con ==null){
-            try{
-                con = new sqlutil().getcon();
-            }catch(Exception ex){
-                System.out.println("connection fail bring sync");
-                return false;
-            }
+        try{
+            if(con == null||con.isClosed())
+            con = new sqlutil().getcon();
+        }catch(Exception ex){
+            System.out.println("connection fail bring sync");
+            return false;
         }
+        
         if(zabbixMax==0) zabbixMax = getZabbixMaxClock();
         while(true){
             while(zabbixMax-next >= 60){
@@ -248,12 +248,12 @@ public class data_puller extends TimerTask{
     }
     
     public void pullData(){
-        String query = "select * from history_uint where clock >= ? and clock < ? and itemid in "+itemList+" order by itemid";
         params.add(next);params.add(next+60);
         int hostid=0;int itemid = 0;
         System.out.println("pullData for clock "+next);
+        String Vquery = "select * from history_uint where clock >= ? and clock < ? and itemid in "+itemList+" order by itemid";
         try{
-            ResultSet rs = su2.selectQuery(query, params, con2);
+            ResultSet rs = su2.selectQuery(Vquery, params, con2);
             int i = 0;
             DateFieldAdder adder = new DateFieldAdder();
             long value = 0;long clock =0;
